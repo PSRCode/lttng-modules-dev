@@ -846,6 +846,7 @@ static void __event_probe__##_name(void *__data, _proto)		      \
 	struct probe_local_vars __tp_locvar;				      \
 	struct probe_local_vars *tp_locvar __attribute__((unused)) =	      \
 			&__tp_locvar;					      \
+	struct lttng_pid_filter *__lpf;					      \
 									      \
 	if (!_TP_SESSION_CHECK(session, __chan->session))		      \
 		return;							      \
@@ -854,6 +855,9 @@ static void __event_probe__##_name(void *__data, _proto)		      \
 	if (unlikely(!ACCESS_ONCE(__chan->enabled)))			      \
 		return;							      \
 	if (unlikely(!ACCESS_ONCE(__event->enabled)))			      \
+		return;							      \
+	__lpf = ACCESS_ONCE(__chan->pid_filter);			      \
+	if (__lpf && likely(!lttng_pid_filter_lookup(__lpf, current->pid)))   \
 		return;							      \
 	_code								      \
 	__event_len = __event_get_size__##_name(__dynamic_len, tp_locvar,     \
@@ -888,6 +892,7 @@ static void __event_probe__##_name(void *__data)			      \
 	struct probe_local_vars __tp_locvar;				      \
 	struct probe_local_vars *tp_locvar __attribute__((unused)) =	      \
 			&__tp_locvar;					      \
+	struct lttng_pid_filter *__lpf;					      \
 									      \
 	if (!_TP_SESSION_CHECK(session, __chan->session))		      \
 		return;							      \
@@ -896,6 +901,9 @@ static void __event_probe__##_name(void *__data)			      \
 	if (unlikely(!ACCESS_ONCE(__chan->enabled)))			      \
 		return;							      \
 	if (unlikely(!ACCESS_ONCE(__event->enabled)))			      \
+		return;							      \
+	__lpf = ACCESS_ONCE(__chan->pid_filter);			      \
+	if (__lpf && likely(!lttng_pid_filter_lookup(__lpf, current->pid)))   \
 		return;							      \
 	_code								      \
 	__event_len = __event_get_size__##_name(__dynamic_len, tp_locvar);    \

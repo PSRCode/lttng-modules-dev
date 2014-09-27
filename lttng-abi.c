@@ -1173,6 +1173,10 @@ old_ctx_end:
 	case LTTNG_KERNEL_SYSCALL_MASK:
 		return lttng_channel_syscall_mask(channel,
 			(struct lttng_kernel_syscall_mask __user *) arg);
+	case LTTNG_KERNEL_FILTER_ADD_PID:
+		return lttng_channel_filter_add(channel, (int) arg);
+	case LTTNG_KERNEL_FILTER_DEL_PID:
+		return lttng_channel_filter_del(channel, (int) arg);
 	default:
 		return -ENOIOCTLCMD;
 	}

@@ -282,6 +282,8 @@ struct lttng_transport {
 
 struct lttng_syscall_filter;
 
+struct lttng_pid_filter;
+
 struct lttng_channel {
 	unsigned int id;
 	struct channel *chan;		/* Channel buffers */
@@ -303,6 +305,7 @@ struct lttng_channel {
 	struct lttng_event *sc_exit_unknown;
 	struct lttng_event *compat_sc_exit_unknown;
 	struct lttng_syscall_filter *sc_filter;
+	struct lttng_pid_filter *pid_filter;
 	int header_type;		/* 0: unset, 1: compact, 2: large */
 	enum channel_type channel_type;
 	unsigned int metadata_dumped:1,
@@ -397,6 +400,15 @@ void lttng_probes_exit(void);
 
 int lttng_metadata_output_channel(struct lttng_metadata_stream *stream,
 		struct channel *chan);
+
+struct lttng_pid_filter *lttng_pid_filter_create(void);
+void lttng_pid_filter_destroy(struct lttng_pid_filter *lpf);
+bool lttng_pid_filter_lookup(struct lttng_pid_filter *lpf, int pid);
+int lttng_pid_filter_add(struct lttng_pid_filter *lpf, int pid);
+int lttng_pid_filter_del(struct lttng_pid_filter *lpf, int pid);
+
+int lttng_channel_filter_add(struct lttng_channel *chan, int pid);
+int lttng_channel_filter_del(struct lttng_channel *chan, int pid);
 
 #if defined(CONFIG_HAVE_SYSCALL_TRACEPOINTS)
 int lttng_syscalls_register(struct lttng_channel *chan, void *filter);

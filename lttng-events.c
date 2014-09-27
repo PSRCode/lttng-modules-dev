@@ -332,6 +332,8 @@ active:
 static
 void _lttng_channel_destroy(struct lttng_channel *chan)
 {
+	if (chan->pid_filter)
+		lttng_pid_filter_destroy(chan->pid_filter);
 	chan->ops->channel_destroy(chan->chan);
 	module_put(chan->transport->owner);
 	list_del(&chan->list);
@@ -584,6 +586,43 @@ void _lttng_event_destroy(struct lttng_event *event)
 	list_del(&event->list);
 	lttng_destroy_context(event->ctx);
 	kmem_cache_free(event_cache, event);
+}
+
+int lttng_channel_filter_add(struct lttng_channel *chan, int pid)
+{
+	int ret;
+
+	if (pid < 0)
+		return -EINVAL;
+	mutex_lock(&sessions_mutex);
+	if (!chan->pid_filter) {
+		chan->pid_filter = lttng_pid_filter_create();
+		if (!chan->pid_filter) {
+			ret = -ENOMEM;
+			goto unlock;
+		}
+	}
+	ret = lttng_pid_filter_add(chan->pid_filter, pid);
+unlock:
+	mutex_unlock(&sessions_mutex);
+	return ret;
+}
+
+int lttng_channel_filter_del(struct lttng_channel *chan, int pid)
+{
+	int ret;
+
+	if (pid < 0)
+		return -EINVAL;
+	mutex_lock(&sessions_mutex);
+	if (!chan->pid_filter) {
+		ret = -ENOENT;
+		goto unlock;
+	}
+	ret = lttng_pid_filter_del(chan->pid_filter, pid);
+unlock:
+	mutex_unlock(&sessions_mutex);
+	return ret;
 }
 
 /*
