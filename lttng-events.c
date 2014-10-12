@@ -1047,6 +1047,7 @@ static
 uint64_t measure_clock_offset(void)
 {
 	uint64_t offset, monotonic[2], realtime;
+	uint64_t tcf = trace_clock_freq();
 	struct timespec rts = { 0, 0 };
 	unsigned long flags;
 
@@ -1058,8 +1059,15 @@ uint64_t measure_clock_offset(void)
 	local_irq_restore(flags);
 
 	offset = (monotonic[0] + monotonic[1]) >> 1;
-	realtime = (uint64_t) rts.tv_sec * NSEC_PER_SEC;
-	realtime += rts.tv_nsec;
+	realtime = (uint64_t) rts.tv_sec * tcf;
+	if (tcf == NSEC_PER_SEC) {
+		realtime += rts.tv_nsec;
+	} else {
+		uint64_t n = rts.tv_nsec * tcf;
+
+		do_div(n, NSEC_PER_SEC);
+		realtime += n;
+	}
 	offset = realtime - offset;
 	return offset;
 }
@@ -1152,8 +1160,8 @@ int _lttng_session_metadata_statedump(struct lttng_session *session)
 
 	ret = lttng_metadata_printf(session,
 		"clock {\n"
-		"	name = %s;\n",
-		"monotonic"
+		"	name = \"%s\";\n",
+		trace_clock_name()
 		);
 	if (ret)
 		goto end;
@@ -1168,11 +1176,12 @@ int _lttng_session_metadata_statedump(struct lttng_session *session)
 	}
 
 	ret = lttng_metadata_printf(session,
-		"	description = \"Monotonic Clock\";\n"
+		"	description = \"%s\";\n"
 		"	freq = %llu; /* Frequency, in Hz */\n"
 		"	/* clock value offset from Epoch is: offset * (1/freq) */\n"
 		"	offset = %llu;\n"
 		"};\n\n",
+		trace_clock_description(),
 		(unsigned long long) trace_clock_freq(),
 		(unsigned long long) measure_clock_offset()
 		);
@@ -1182,20 +1191,23 @@ int _lttng_session_metadata_statedump(struct lttng_session *session)
 	ret = lttng_metadata_printf(session,
 		"typealias integer {\n"
 		"	size = 27; align = 1; signed = false;\n"
-		"	map = clock.monotonic.value;\n"
+		"	map = clock.%s.value;\n"
 		"} := uint27_clock_monotonic_t;\n"
 		"\n"
 		"typealias integer {\n"
 		"	size = 32; align = %u; signed = false;\n"
-		"	map = clock.monotonic.value;\n"
+		"	map = clock.%s.value;\n"
 		"} := uint32_clock_monotonic_t;\n"
 		"\n"
 		"typealias integer {\n"
 		"	size = 64; align = %u; signed = false;\n"
-		"	map = clock.monotonic.value;\n"
+		"	map = clock.%s.value;\n"
 		"} := uint64_clock_monotonic_t;\n\n",
+		trace_clock_name(),
 		lttng_alignof(uint32_t) * CHAR_BIT,
-		lttng_alignof(uint64_t) * CHAR_BIT
+		trace_clock_name(),
+		lttng_alignof(uint64_t) * CHAR_BIT,
+		trace_clock_name()
 		);
 	if (ret)
 		goto end;

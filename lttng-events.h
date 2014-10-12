@@ -398,6 +398,9 @@ void lttng_probes_exit(void);
 int lttng_metadata_output_channel(struct lttng_metadata_stream *stream,
 		struct channel *chan);
 
+void lttng_clock_ref(void);
+void lttng_clock_unref(void);
+
 #if defined(CONFIG_HAVE_SYSCALL_TRACEPOINTS)
 int lttng_syscalls_register(struct lttng_channel *chan, void *filter);
 int lttng_syscalls_unregister(struct lttng_channel *chan);
